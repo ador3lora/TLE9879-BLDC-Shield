@@ -8,6 +8,8 @@
 #ifndef TLE9879_FOURPACK_H_
 #define TLE9879_FOURPACK_H_
 
+#define TLE9879_LOG_LEVEL_NONE
+
 #include "Arduino.h"
 
 typedef bool boolean;
@@ -188,7 +190,7 @@ typedef bool boolean;
 
 #define COPYDATASET 0x0D00
 
-// 0x0F: getMotorspeed  
+// 0x0F: getMotorspeed
 #define GETMOTORSPEED				0x0F00
 
 // 0x11: CHECKSUCCESS
@@ -202,7 +204,7 @@ typedef struct
 {
     uint8_t code = ERR_NONE;						// possible error code of a function
     uint16_t additionalInfo[5] = { 0, 0, 0, 0, 0 };	// additional info can be stored here
-} StatusInfo; 
+} StatusInfo;
 
 
 // --------------------DATATYPES--------------------
@@ -315,24 +317,24 @@ private:
     Board* boards[4] = { nullptr, nullptr, nullptr, nullptr };
     StatusInfo* status = new StatusInfo();
     uint8_t boardCount;
-    
+
     void processStatusCodes(uint16_t action, uint8_t boardnr);
     void printAction(uint16_t action);
     bool checkBoardNumber(uint8_t boardnr, uint16_t action, uint8_t& startIndex, uint8_t& endIndex);
     void printBoardNr(uint8_t boardnr);
 
 public:
-    bool infoMessagesEnabled = true;
+    bool infoMessagesEnabled = false;
 
     TLE9879_Group(uint8_t boardCount);
     ~TLE9879_Group();
-    
+
     void startAutoAddressing();
     void resetAllBoards();
     void setMode(uint8_t mode, uint8_t boardnr = ALL_BOARDS, bool fastMode = false);
     void setMotorMode(uint8_t mode, uint8_t boardnr = ALL_BOARDS);
     void setMotorSpeed(float motorspeed, uint8_t boardnr = ALL_BOARDS);
-    void getMotorSpeed(uint8_t boardnr = ALL_BOARDS); 
+    void getMotorSpeed(uint8_t boardnr = ALL_BOARDS);
     void setParameter(uint8_t parameter, float value, uint8_t boardnr = ALL_BOARDS);
     void saveDataset(uint8_t pos, uint8_t boardnr = ALL_BOARDS);
     void loadDataset(uint8_t pos, uint8_t boardnr = ALL_BOARDS);
@@ -354,7 +356,7 @@ private:
     uint8_t slaveselectpin = 0;
     uint8_t currentmode = 0;
     boolean  board_available = false;
-    
+
     int16_t motorspeed = 0;
     //recieved speed
     int16_t act_speed=0;
@@ -363,9 +365,9 @@ public:
     data_FOC_union* data_FOC = nullptr;
     data_BEMF_union* data_BEMF = nullptr;
     data_HALL_union* data_HALL = nullptr;
-    
+
     static const char* const modenames[4];
-    
+
     Board(uint8_t number, StatusInfo* info); 	// constructor
     ~Board();									// destructor
 

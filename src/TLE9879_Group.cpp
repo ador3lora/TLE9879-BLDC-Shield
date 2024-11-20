@@ -12,16 +12,18 @@
 TLE9879_Group::TLE9879_Group(uint8_t boardCount)
 {
     this->boardCount = boardCount;
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     // start serial connection with a baud rate of 9600
     Serial.begin(9600);
-    
+
     Serial.println(F("INFO: Starting initialization"));
-    
+#endif // TLE9879_LOG_LEVEL_NONE
+
     // set the auto-addressing pin to high
     pinMode(8, OUTPUT);
     digitalWrite(8, HIGH);
-    
+
     // set all the slave-select-pins to high (not selected)
     pinMode(SLAVESELECT_BOARD1, OUTPUT);
     pinMode(SLAVESELECT_BOARD2, OUTPUT);
@@ -33,15 +35,15 @@ TLE9879_Group::TLE9879_Group(uint8_t boardCount)
     digitalWrite(SLAVESELECT_BOARD4, HIGH);
 
     delay(500);
-    
+
     // start the SPI connection
     SPI.begin();
     SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE3));
-    
+
     // all boards are reset and set to bootloader mode
     resetAllBoards();
     delay(500);
-    
+
     // Here, the given number of boards is initialized.
     // The initialization command is send repeatedly, until exactly the given number of boards are ready to be used,
     // i.e. if any board does not respond positively, the command is send again and again, until it responds.
@@ -50,7 +52,7 @@ TLE9879_Group::TLE9879_Group(uint8_t boardCount)
     {
         // create board object
         boards[i] = new Board(i + 1, status);
-        
+
         // if the board is not available wait 2 seconds and try again
         while(!boards[i]->isAvailable())
         {
@@ -58,13 +60,19 @@ TLE9879_Group::TLE9879_Group(uint8_t boardCount)
             if(status->code != ERR_NONE) processStatusCodes(BOARDCONTROL, i + 1);
             boards[i]->boardControl();
         }
-        
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
         Serial.print(F("INFO: Board "));
         Serial.print(i + 1);
         Serial.println(F(" was successfully initialized"));
+#endif // TLE9879_LOG_LEVEL_NONE
+
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     Serial.println(F("INFO: Done initializing"));
+#endif // TLE9879_LOG_LEVEL_NONE
+
     delay(100);
 }
 
@@ -81,12 +89,12 @@ void TLE9879_Group::sendMessageToAll(uint16_t data)
     digitalWrite(SLAVESELECT_BOARD2, LOW);
     digitalWrite(SLAVESELECT_BOARD3, LOW);
     digitalWrite(SLAVESELECT_BOARD4, LOW);
-    
+
     // send the message to all boards
     delayMicroseconds(100);
     SPI.transfer16(data);
     delayMicroseconds(100);
-    
+
     // deselect all four boards
     digitalWrite(SLAVESELECT_BOARD1, HIGH);
     digitalWrite(SLAVESELECT_BOARD2, HIGH);
@@ -99,23 +107,26 @@ void TLE9879_Group::loadDataset(uint8_t pos, uint8_t boardnr)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, LOADDATASET, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         boards[index]->loadDataset(pos);
         processStatusCodes(LOADDATASET, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: load dataset complete -> "));
         printBoardNr(boardnr);
         Serial.println(pos);
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::saveDataset(uint8_t pos, uint8_t boardnr)
-{	
+{
     //pos -= CUSTOMDATASET0; // custom datasets start at 0x10 instead of 0x00
 
     uint8_t index, end;
@@ -126,63 +137,72 @@ void TLE9879_Group::saveDataset(uint8_t pos, uint8_t boardnr)
         boards[index]->saveDataset(pos);
         processStatusCodes(SAVEDATASET, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: save dataset complete -> "));
         printBoardNr(boardnr);
         Serial.println(pos);
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::readDataset(uint8_t boardnr)
 {
-    if(boardnr > ALL_BOARDS || boardnr == 0) 
+    if(boardnr > ALL_BOARDS || boardnr == 0)
     {
         status->code = ERR_INVALID_BOARD_NR;
         status->additionalInfo[0] = boardnr;
     }
-    
+
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, READDATASET, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         boards[index]->readDataset();
         processStatusCodes(READDATASET, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: read dataset complete -> "));
         printBoardNr(boardnr);
         Serial.println("");
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::writeDataset(uint8_t boardnr)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, WRITEDATASET, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         boards[index]->writeDataset();
         processStatusCodes(WRITEDATASET, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: write dataset complete -> "));
         printBoardNr(boardnr);
         Serial.println();
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::copyDataset(uint8_t mode, uint8_t from, uint8_t to)
 {
     from--;
-    
+
     if(mode == FOC || mode == BEMF || mode == HALL)
     {
         uint8_t index, end;
@@ -196,7 +216,7 @@ void TLE9879_Group::copyDataset(uint8_t mode, uint8_t from, uint8_t to)
             for( ; index < end; index++)
             {
                 if(index == from) continue;
-                
+
                 switch(mode)
                 {
                     case FOC: boards[index]->data_FOC->datastruct_FOC = boards[from]->data_FOC->datastruct_FOC; break;
@@ -205,33 +225,37 @@ void TLE9879_Group::copyDataset(uint8_t mode, uint8_t from, uint8_t to)
                 }
             }
         }
-    } else 
+    } else
     {
         status->code = ERR_INVALID_PARAMETER;
         status->additionalInfo[0] = mode;
     }
-    
+
     processStatusCodes(COPYDATASET, 0);
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: copy dataset complete -> "));
         printBoardNr(to);
         Serial.println();
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::setParameter(uint8_t parameter, float value, uint8_t boardnr)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, CHANGEPARAMETER, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         boards[index]->changeParameter(parameter, value);
         processStatusCodes(CHANGEPARAMETER, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: parameter change complete -> "));
@@ -241,6 +265,8 @@ void TLE9879_Group::setParameter(uint8_t parameter, float value, uint8_t boardnr
         Serial.print(F("; value: "));
         Serial.println(value);
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::setMotorMode(uint8_t mode, uint8_t boardnr)
@@ -251,16 +277,17 @@ void TLE9879_Group::setMotorMode(uint8_t mode, uint8_t boardnr)
         status->additionalInfo[0] = mode;
         return;
     }
-    
+
     uint8_t index, end;
     if (!checkBoardNumber(boardnr, MOTORCONTROL, index, end)) return;
-    
+
     for ( ; index < end; index++)
     {
         boards[index]->motorControl(mode);
         processStatusCodes(MOTORCONTROL, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: motor mode change complete -> "));
@@ -268,25 +295,30 @@ void TLE9879_Group::setMotorMode(uint8_t mode, uint8_t boardnr)
         if (mode == START_MOTOR) Serial.println(F("start"));
         else Serial.println(F("stop"));
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::setMotorSpeed(float motorspeed, uint8_t boardnr)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, SETMOTORSPEED, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         boards[index]->setMotorspeed(motorspeed);
         processStatusCodes(SETMOTORSPEED, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: motor speed change complete -> "));
         printBoardNr(boardnr);
         Serial.println(motorspeed);
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::getMotorSpeed(uint8_t boardnr)
@@ -300,13 +332,13 @@ void TLE9879_Group::getMotorSpeed(uint8_t boardnr)
         boards[index]->getMotorspeed();
         processStatusCodes(GETMOTORSPEED, index + 1);
     }
-        
+
 }
 void TLE9879_Group::setMode(uint8_t mode, uint8_t boardnr, bool fastMode)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, MODECONTROL, index, end)) return;
-    
+
     if(fastMode)
     {
         sendMessageToAll(MODECONTROL + mode);
@@ -324,14 +356,15 @@ void TLE9879_Group::setMode(uint8_t mode, uint8_t boardnr, bool fastMode)
             }
         }
     } else
-    {	
+    {
         for( ; index < end; index++)
         {
             boards[index]->modeControl(mode);
             processStatusCodes(MODECONTROL, index + 1);
         }
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
         Serial.print(F("INFO: mode change complete -> "));
@@ -339,24 +372,29 @@ void TLE9879_Group::setMode(uint8_t mode, uint8_t boardnr, bool fastMode)
         if(mode == GETCURRENTMODE) Serial.println(F("Get Current Mode"));
         else Serial.println(Board::modenames[mode]);
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::setLed(uint16_t led, uint16_t mode, uint8_t boardnr)
 {
     uint8_t index, end;
     if(!checkBoardNumber(boardnr, LED, index, end)) return;
-    
+
     for( ; index < end; index++)
     {
         if(mode == LED_ON) boards[index]->LEDOn(led);
         else if(mode == LED_OFF) boards[index]->LEDOff(led);
         processStatusCodes(LED, index + 1);
     }
-    
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(infoMessagesEnabled)
     {
-        Serial.println(F("INFO: LED control complete")); 
+        Serial.println(F("INFO: LED control complete"));
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::setLedColor(uint8_t color, uint8_t boardnr)
@@ -364,11 +402,11 @@ void TLE9879_Group::setLedColor(uint8_t color, uint8_t boardnr)
     // blue LED
     if(color & 1) setLed(LED_BLUE, LED_ON, boardnr);
     else setLed(LED_BLUE, LED_OFF, boardnr);
-    
+
     // green LED
     if(color & 2) setLed(LED_GREEN, LED_ON, boardnr);
     else setLed(LED_GREEN, LED_OFF, boardnr);
-    
+
     // red LED
     if(color & 4) setLed(LED_RED, LED_ON, boardnr);
     else setLed(LED_RED, LED_OFF, boardnr);
@@ -376,42 +414,52 @@ void TLE9879_Group::setLedColor(uint8_t color, uint8_t boardnr)
 
 void TLE9879_Group::startAutoAddressing()
 {
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     Serial.println(F("INFO: Doing auto-addressing"));
+#endif // TLE9879_LOG_LEVEL_NONE
+
     sendMessageToAll(BOARDCONTROL + AUTOADDRESSING);
     delay(100); // let slaves do auto-addressing
 }
 
 void TLE9879_Group::resetAllBoards()
 {
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     Serial.println(F("INFO: Sending reset request to all boards"));
+#endif // TLE9879_LOG_LEVEL_NONE
+
     // stop all motors (they may be running)
     sendMessageToAll(MOTORCONTROL + STOP_MOTOR);
     delay(10);
     // reset all TLE9879_Boards
     sendMessageToAll(BOARDCONTROL + RESET);
-    delay(1000); 
+    delay(1000);
 }
 
 void TLE9879_Group::checkErrors()
 {
     static unsigned long time = 0;
-    
+
     if(millis() - time < 1000) return;
-    
+
     for(int i = 0; i < boardCount; i++)
     {
         if(!boards[i]) continue;
-        
+
         boards[i]->sendMessage(CHECK_ERROR);
         uint16_t answer = boards[i]->readAnswer();
         if(answer != CHECK_ERROR + CONFIRM_OFFSET)
         {
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
             Serial.print(F("WARNING: Error Checks; Board: "));
             Serial.print(i + 1);
             Serial.print(F("; Mode: "));
             Serial.print(Board::modenames[boards[i]->getCurrentMode()]);
             Serial.print(F("; Error code: "));
-            
+
             for(uint16_t i = 1; i <= 0x1000; i *= 2)
             {
                 if((i & answer) != 0)
@@ -422,9 +470,11 @@ void TLE9879_Group::checkErrors()
             }
             Serial.print(F("answer: "));
             Serial.println(answer, HEX);
+#endif // TLE9879_LOG_LEVEL_NONE
+
         }
     }
-    
+
     time = millis();
 }
 
@@ -439,12 +489,16 @@ TLE9879_Group::Board* TLE9879_Group::getBoard(uint8_t index)
 void TLE9879_Group::processStatusCodes(uint16_t action, uint8_t boardnr)
 {
     if(status->code == ERR_NONE) return;
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     Serial.print(F("WARNING: Board["));
     Serial.print(boardnr);
     Serial.print(F("]; Action["));
     printAction(action);
     Serial.print(F("]; "));
-    
+#endif // TLE9879_LOG_LEVEL_NONE
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     switch(status->code)
     {
         case ERR_STILL_IN_BOOTLOADER:
@@ -502,12 +556,15 @@ void TLE9879_Group::processStatusCodes(uint16_t action, uint8_t boardnr)
             Serial.println(status->code);
             break;
     }
-    
+#endif // TLE9879_LOG_LEVEL_NONE
+
     status->code = ERR_NONE;
 }
 
 void TLE9879_Group::printAction(uint16_t action)
 {
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     switch(action)
     {
         case MODECONTROL: Serial.print(F("mode control")); break;
@@ -523,6 +580,8 @@ void TLE9879_Group::printAction(uint16_t action)
         case LED: Serial.print(F("LED control")); break;
         default: break;
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 bool TLE9879_Group::checkBoardNumber(uint8_t boardnr, uint16_t action, uint8_t& startIndex, uint8_t& endIndex)
@@ -536,7 +595,7 @@ bool TLE9879_Group::checkBoardNumber(uint8_t boardnr, uint16_t action, uint8_t& 
     {
         startIndex = 0;
         endIndex = boardCount;
-    } else 
+    } else
     {
         startIndex = boardnr - 1;
         endIndex = boardnr;
@@ -546,20 +605,24 @@ bool TLE9879_Group::checkBoardNumber(uint8_t boardnr, uint16_t action, uint8_t& 
 
 void TLE9879_Group::printBoardNr(uint8_t boardnr)
 {
+
+#if !defined( TLE9879_LOG_LEVEL_NONE )
     if(boardnr == ALL_BOARDS) Serial.print(F("Board: All; "));
-    else 
+    else
     {
         Serial.print(F("Board: "));
         Serial.print(boardnr);
         Serial.print(F("; "));
     }
+#endif // TLE9879_LOG_LEVEL_NONE
+
 }
 
 void TLE9879_Group::testBlinky()
 {
     static uint8_t index = 0;
     static long timerBlinky = 0;
-    
+
     if(millis() - timerBlinky > 1000)
     {
         index++;
@@ -567,7 +630,7 @@ void TLE9879_Group::testBlinky()
         {
             index = 0;
         }
-        
+
         setLedColor(index);
         timerBlinky = millis();
     }
