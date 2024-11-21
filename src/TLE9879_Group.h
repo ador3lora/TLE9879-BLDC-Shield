@@ -24,10 +24,10 @@ typedef bool boolean;
 
 // common
 #define CONFIRM_OFFSET 		0x1000
-#define SLAVESELECT_BOARD1 	4
-#define SLAVESELECT_BOARD2 	5
-#define SLAVESELECT_BOARD3 	6
-#define SLAVESELECT_BOARD4 	7
+#define SLAVESELECT_BOARD1 	45
+#define SLAVESELECT_BOARD2 	46
+#define SLAVESELECT_BOARD3 	47
+#define SLAVESELECT_BOARD4 	48
 
 // 0x01: modeControl
 #define MODECONTROL 		0x0100

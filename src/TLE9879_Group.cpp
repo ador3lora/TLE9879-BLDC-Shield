@@ -14,15 +14,15 @@ TLE9879_Group::TLE9879_Group(uint8_t boardCount)
     this->boardCount = boardCount;
 
 #if !defined( TLE9879_LOG_LEVEL_NONE )
-    // start serial connection with a baud rate of 9600
-    Serial.begin(9600);
+    // start serial connection with a baud rate of 115200
+    Serial.begin(115200);
 
     Serial.println(F("INFO: Starting initialization"));
 #endif // TLE9879_LOG_LEVEL_NONE
 
     // set the auto-addressing pin to high
-    pinMode(8, OUTPUT);
-    digitalWrite(8, HIGH);
+    pinMode(49, OUTPUT);
+    digitalWrite(49, HIGH);
 
     // set all the slave-select-pins to high (not selected)
     pinMode(SLAVESELECT_BOARD1, OUTPUT);
